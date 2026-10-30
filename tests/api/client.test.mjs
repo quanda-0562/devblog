@@ -13,6 +13,8 @@ test("fetchPosts và fetchPost trả Promise, danh sách và chi tiết nhất q
   assert.equal(posts.length, 3);
   assert.deepEqual(post, posts.find((item) => item.id === 1));
   assert.ok(post.title && post.content && post.slug && post.author);
+  assert.equal(post.author.id, 1);
+  assert.equal(post.author.name, "Nguyễn An");
   assert.ok(Number.isFinite(Date.parse(post.publishedAt)));
 });
 
@@ -22,18 +24,24 @@ test("sửa dữ liệu trả về không thay đổi dữ liệu gốc", async 
   t.mock.timers.tick(400);
   const posts = await first;
   const originalTitle = posts[0].title;
+  const originalAuthorName = posts[0].author.name;
   posts[0].title = "Đã sửa";
+  posts[0].author.name = "Sửa tác giả trong danh sách";
+  assert.equal(posts[2].author.name, originalAuthorName);
   posts.pop();
   const second = fetchPost(1);
   t.mock.timers.tick(400);
   const post = await second;
   assert.equal(post.title, originalTitle);
+  assert.equal(post.author.name, originalAuthorName);
   post.title = "Sửa chi tiết";
+  post.author.name = "Sửa tác giả trong chi tiết";
   const third = fetchPosts();
   t.mock.timers.tick(400);
   const fresh = await third;
   assert.equal(fresh.length, 3);
   assert.equal(fresh[0].title, originalTitle);
+  assert.equal(fresh[0].author.name, originalAuthorName);
 });
 
 test("ID không hợp lệ và không tồn tại trả ApiError có code/status", async (t) => {

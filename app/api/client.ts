@@ -1,12 +1,7 @@
-export type Post = {
-  id: number;
-  slug: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  author: string;
-  publishedAt: string;
-};
+import type { Author, Post } from "../types";
+
+// Giữ đường dẫn import type cũ cho các bên đang sử dụng client.
+export type { Post } from "../types";
 
 export type RequestOptions = {
   signal?: AbortSignal;
@@ -29,6 +24,11 @@ export class ApiError extends Error {
   }
 }
 
+const authors = {
+  an: { id: 1, name: "Nguyễn An" },
+  binh: { id: 2, name: "Trần Bình" },
+} satisfies Record<string, Author>;
+
 // Dữ liệu riêng của module; các hàm trả bản sao để bên gọi không sửa dữ liệu gốc.
 const posts: Post[] = [
   {
@@ -37,7 +37,7 @@ const posts: Post[] = [
     title: "Hiểu JavaScript event loop",
     excerpt: "Call stack, microtask và macrotask hoạt động như thế nào?",
     content: "JavaScript chạy mã đồng bộ trước, xử lý microtask rồi mới đến macrotask tiếp theo.",
-    author: "Nguyễn An",
+    author: authors.an,
     publishedAt: "2026-10-26T02:00:00Z",
   },
   {
@@ -46,7 +46,7 @@ const posts: Post[] = [
     title: "Promise.all và Promise.allSettled",
     excerpt: "Chọn cách phối hợp các tác vụ bất đồng bộ độc lập.",
     content: "Promise.all reject ngay khi một tác vụ lỗi. Promise.allSettled chờ tất cả và trả trạng thái từng tác vụ.",
-    author: "Trần Bình",
+    author: authors.binh,
     publishedAt: "2026-10-27T02:00:00Z",
   },
   {
@@ -55,7 +55,7 @@ const posts: Post[] = [
     title: "Hủy request bằng AbortController",
     excerpt: "Hủy request cũ khi tìm kiếm hoặc khi component unmount.",
     content: "Truyền signal vào tác vụ bất đồng bộ và gọi controller.abort() khi không còn cần kết quả.",
-    author: "Nguyễn An",
+    author: authors.an,
     publishedAt: "2026-10-27T03:00:00Z",
   },
 ];
@@ -98,7 +98,11 @@ async function request<T>(read: () => T, { signal }: RequestOptions): Promise<T>
 
 /** Lấy danh sách bài viết. Hỗ trợ fetchPosts({ signal }). */
 export function fetchPosts(options: RequestOptions = {}): Promise<Post[]> {
-  return request(() => posts.map((post) => ({ ...post })), options);
+  return request(() => posts.map(copyPost), options);
+}
+
+function copyPost(post: Post): Post {
+  return { ...post, author: { ...post.author } };
 }
 
 /** Lấy bài viết theo ID nguyên dương; reject ApiError nếu ID sai hoặc không có bài. */
@@ -111,6 +115,6 @@ export function fetchPost(id: number, options: RequestOptions = {}): Promise<Pos
     if (!post) {
       throw new ApiError(`Không tìm thấy bài viết có ID ${id}.`, "NOT_FOUND", 404);
     }
-    return { ...post };
+    return copyPost(post);
   }, options);
 }
